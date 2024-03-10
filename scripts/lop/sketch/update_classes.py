@@ -22,8 +22,8 @@ args = parser.parse_args()
 # Imprime a string recebida
 print(f'String recebida: {args.input_string}')
 
+classCode = args.input_string
 
-#
 def replaceOneStudentClass(db, data, nameCollection,classCode):
   """
   Esta função recebe um dataframe com os dados dos estudantes de uma turma e os insere no banco de dados.
@@ -76,12 +76,12 @@ def replaceOneStudentClass(db, data, nameCollection,classCode):
    
 
 
-classCode = "lop2023_2t01" 
+#classCode = "lop2023_2t01" 
 
 
 
 dataStudents =  pd.read_csv("./dados/{}/alunos.csv".format(classCode)) 
+
 print( dataStudents.head() )
-# Esse código cadastra no banco de dados dataviewer (teste) os estudantes de uma turma 
-# Caso já exista estudantes da turma cadastrados, estes serão atualizadas 
+ 
 replaceOneStudentClass(db,dataStudents, 'classstudents', classCode) 
