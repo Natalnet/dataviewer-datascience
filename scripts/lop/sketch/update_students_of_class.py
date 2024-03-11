@@ -24,7 +24,7 @@ print(f'String recebida: {args.input_string}')
 
 classCode = args.input_string
 
-def replaceOneStudentClass(db, data, nameCollection,classCode):
+def replaceStudentsOfClass(db, data, nameCollection,classCode):
   """
   Esta função recebe um dataframe com os dados dos estudantes de uma turma e os insere no banco de dados.
   Caso já exista estudantes da turma cadastrados, estes serão atualizadas. Os campos mais importantes da 
@@ -84,4 +84,4 @@ dataStudents =  pd.read_csv("./dados/{}/alunos.csv".format(classCode))
 
 print( dataStudents.head() )
  
-replaceOneStudentClass(db,dataStudents, 'classstudents', classCode) 
+replaceStudentsOfClass(db,dataStudents, 'classstudents', classCode) 
