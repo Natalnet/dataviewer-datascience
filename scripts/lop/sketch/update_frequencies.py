@@ -10,6 +10,8 @@ Por fim, os dados são tratados e inseridos no banco de dados do sistema datavie
 import requests
 import json
 from dotenv import dotenv_values
+import pymongo
+from pymongo.server_api import ServerApi
 
 config = dotenv_values(".env")
 
@@ -81,25 +83,65 @@ def get_class_data(class_code, token):
         print(f"Erro ao obter os dados da turma: {response.status_code}")
         return None
 
+
+def replaceOneStudentFrequency(collection, studentDataFreq, classCode):
+  """
+  Esta função recebe um dicionário com os dados de frequência de um estudante e os insere no banco de dados.
+  Caso já exista o estudante com a frequência cadastrada, esta será atualizada. Os campos mais importantes da 
+  tabela resultante são o código da turma, o número de matrícula do estudante e a lista de frequências.
+
+  Args:  
+  data (dict): Dicionário com os dados da turma
+  nameCollection (str): Nome da coleção onde os dados serão inseridos
+  classCode (str): Código da turma
+
+  Returns:
+  None
+  """
+  studentDataFreq['classCode'] = classCode 
+  try: 
+    print('\nGravando os dados do estudante ', studentDataFreq['regNum']) 
+    result = collection.replace_one( {'regNum': studentDataFreq['regNum'], 'classCode': classCode }, studentDataFreq, True)
+    
+    if result.modified_count == 0:
+      print('Inserido!') 
+    else: 
+      print('Atualizado!') 
+  except:
+    print("Erro ao inserir no banco de dados!")
+
 api_token = get_token()
 
 # Exemplo de uso
-class_data = get_class_data("LOP-A",api_token)
- 
+class_data = get_class_data("LOP-B",api_token)
+
+# Conecta ao banco de dados
+client = pymongo.MongoClient(config['ATLAS_URI'], server_api=ServerApi('1'))
+dbDataviewer = client['dataviewert1'] 
+# Acessa a coleção de frequências de estudantes
+collections = dbDataviewer['studentfrequencies']
 
 # Percorre os dados de frequência da turma
 # Os dados estão organizados em um dicionário 
 # Este for percorre o dicionário e mostra a presença de cada estudante. 
 # O estudante é identificado por seu número de matrícula e este código lista 
 # as datas em que o estudante esteve presente.
+# Formato do dicionário para cada estudante depois de tratado:
+# {"regNum": "234243234", "classFreqs": [ "2021-10-10", "2021-10-11", "2021-10-12" ] }
 for key, value in class_data.items():
   if isinstance(value, dict):  # Verifica se o valor é um dicionário
     for sub_key, sub_value in value.items():
+      tempStudent = {}
+      freqs = []
       #print(f"Chave: {sub_key}, Valor: {sub_value}")
-      print(sub_value['matricula']) 
+      #print(sub_value['matricula']) 
+      tempStudent['regNum'] =  str( int( sub_value['matricula'] ))
       #print(sub_value['frequencia'])
       for sub_sub_key, freq in sub_value['frequencia'].items():
         if freq == 'P':
-          print(f"Chave: {sub_sub_key}")
-
+          #print(f"Dia: {sub_sub_key}")
+          freqs.append(sub_sub_key) 
+      tempStudent['classFreqs'] = freqs
+      print(tempStudent)
+      replaceOneStudentFrequency(collections, tempStudent, "lop2024_1t02")
  
