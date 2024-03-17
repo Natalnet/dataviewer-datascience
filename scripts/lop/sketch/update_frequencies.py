@@ -26,7 +26,7 @@ Returns:
 """
 def get_token():
     # URL da API
-    url = "http://apibot.orivaldo.net:8000/api/v1/users/login"
+    url = f"{config['API_BOT']}/api/v1/users/login"
 
     # Dados de autenticação
     auth_data = {
@@ -62,7 +62,7 @@ Returns:
 """
 def get_class_data(class_code, token):
     # URL da API
-    url = f"http://apibot.orivaldo.net:8000/api/v1/presenca/pegar_frequencias/{class_code}"
+    url = f"{config['API_BOT']}/api/v1/presenca/pegar_frequencias/{class_code}"
 
     # Cabeçalho de autenticação
     headers = {
@@ -113,7 +113,7 @@ def replaceOneStudentFrequency(collection, studentDataFreq, classCode):
 api_token = get_token()
 
 # Exemplo de uso
-class_data = get_class_data("LOP-B",api_token)
+class_data = get_class_data("LOP-D",api_token)
 
 # Conecta ao banco de dados
 client = pymongo.MongoClient(config['ATLAS_URI'], server_api=ServerApi('1'))
@@ -127,7 +127,7 @@ collections = dbDataviewer['studentfrequencies']
 # O estudante é identificado por seu número de matrícula e este código lista 
 # as datas em que o estudante esteve presente.
 # Formato do dicionário para cada estudante depois de tratado:
-# {"regNum": "234243234", "classFreqs": [ "2021-10-10", "2021-10-11", "2021-10-12" ] }
+# {"regNum": "234243234", "classCode": "lop2024_1t02", "classFreqs": [ "2021-10-10", "2021-10-11", "2021-10-12" ] }
 for key, value in class_data.items():
   if isinstance(value, dict):  # Verifica se o valor é um dicionário
     for sub_key, sub_value in value.items():
@@ -143,5 +143,5 @@ for key, value in class_data.items():
           freqs.append(sub_sub_key) 
       tempStudent['classFreqs'] = freqs
       print(tempStudent)
-      replaceOneStudentFrequency(collections, tempStudent, "lop2024_1t02")
+      #replaceOneStudentFrequency(collections, tempStudent, "lop2024_1t02")
  
