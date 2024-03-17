@@ -7,6 +7,7 @@ e o código da turma. Esta consulta é realizada através do método GET.
 Por fim, os dados são tratados e inseridos no banco de dados do sistema dataviewer. 
 """
 
+import pandas as pd 
 import requests
 import json
 from dotenv import dotenv_values
@@ -17,6 +18,9 @@ config = dotenv_values(".env")
 
 print( config['USER_EMAIL'] )
 
+def convertToUTCDate(date):
+  s = date.split('/')
+  return '{}-{}-{}'.format(s[2],s[1],s[0]) 
 
 """
 Esta função realiza a autenticação na API e retorna um token de autenticação.
@@ -90,13 +94,13 @@ def replaceOneStudentFrequency(collection, studentDataFreq, classCode):
   Caso já exista o estudante com a frequência cadastrada, esta será atualizada. Os campos mais importantes da 
   tabela resultante são o código da turma, o número de matrícula do estudante e a lista de frequências.
 
-  Args:  
-  data (dict): Dicionário com os dados da turma
-  nameCollection (str): Nome da coleção onde os dados serão inseridos
+  Args:
+  collection (pymongo.collection.Collection): Coleção onde os dados serão inseridos
+  studentDataFreq (dict): Dicionário com os dados de frequência do estudante
   classCode (str): Código da turma
 
   Returns:
-  None
+  None 
   """
   studentDataFreq['classCode'] = classCode 
   try: 
@@ -110,6 +114,34 @@ def replaceOneStudentFrequency(collection, studentDataFreq, classCode):
   except:
     print("Erro ao inserir no banco de dados!")
 
+def replaceOneClassFrequency(collection, classDataFreq, classCode):
+  """
+  Esta função recebe um dicionário com os dados de frequência de todos os estudante em cada dia de aula da turma
+   e os insere no banco de dados.
+  Caso já exista a turma já tenha presença cadastrada, esta será atualizada. Os campos mais importantes da coleção
+   resultante são o código da turma, a quantidade de estudantes da turma e a lista de frequências diárias.
+
+  Args: 
+  collection (pymongo.collection.Collection): Coleção onde os dados serão inseridos
+  classDataFreq (dict): Dicionário com os dados de frequência da turma
+  classCode (str): Código da turma 
+
+  Returns:
+  None
+  """
+  classDataFreq['classCode'] = classCode 
+  try: 
+    print('\nGravando os dados da turma ', classCode) 
+    result = collection.replace_one( {'classCode': classCode }, classDataFreq, True)
+    
+    if result.modified_count == 0:
+      print('Inserido!') 
+    else: 
+      print('Atualizado!') 
+  except:
+    print("Erro ao inserir no banco de dados!")
+
+
 api_token = get_token()
 
 # Exemplo de uso
@@ -120,7 +152,22 @@ client = pymongo.MongoClient(config['ATLAS_URI'], server_api=ServerApi('1'))
 dbDataviewer = client['dataviewert1'] 
 # Acessa a coleção de frequências de estudantes
 collections = dbDataviewer['studentfrequencies']
+# Código da turma 
+classCode = "lop2024_1t02"
 
+
+# Obtem as datas de aulas de uma turma e cria um dicionário para contar 
+# a presença de todos os estudantes em cada dia de aula 
+# As datas são obtidadas de uma tabela no formato CSV 
+tempClassFreqs = {}
+dataClassFrec =  pd.read_csv("./dados/{}/datas_aulas.csv".format(classCode))  
+#print( dataClassFrec.head() ) 
+l, c =  dataClassFrec.shape
+for i in range(l):   
+  tempClassFreqs[ str( convertToUTCDate( dataClassFrec.iloc[i]['date'] ) ) ] = 0
+#print(tempClassFreqs)
+
+# Atualiza a frequência de cada estudante no banco de dados 
 # Percorre os dados de frequência da turma
 # Os dados estão organizados em um dicionário 
 # Este for percorre o dicionário e mostra a presença de cada estudante. 
@@ -128,6 +175,7 @@ collections = dbDataviewer['studentfrequencies']
 # as datas em que o estudante esteve presente.
 # Formato do dicionário para cada estudante depois de tratado:
 # {"regNum": "234243234", "classCode": "lop2024_1t02", "classFreqs": [ "2021-10-10", "2021-10-11", "2021-10-12" ] }
+
 for key, value in class_data.items():
   if isinstance(value, dict):  # Verifica se o valor é um dicionário
     for sub_key, sub_value in value.items():
@@ -141,7 +189,18 @@ for key, value in class_data.items():
         if freq == 'P':
           #print(f"Dia: {sub_sub_key}")
           freqs.append(sub_sub_key) 
+          # Atualiza a presença do data para cada estudante da turma 
+          if sub_sub_key in tempClassFreqs:
+            tempClassFreqs[sub_sub_key] += 1
       tempStudent['classFreqs'] = freqs
-      print(tempStudent)
-      #replaceOneStudentFrequency(collections, tempStudent, "lop2024_1t02")
- 
+      #print(tempStudent)
+      #replaceOneStudentFrequency(collections, tempStudent, classCode)
+
+# Granvando a frequência da turma no banco de dados
+tempClass = {}
+collectionsFreqs = dbDataviewer['classfrequencies']
+tempClass['classCode'] = classCode
+tempClass['studentNumber'] = 100
+tempClass['classFreqs'] = tempClassFreqs
+print(tempClass)
+replaceOneClassFrequency(collectionsFreqs, tempClass, classCode)
