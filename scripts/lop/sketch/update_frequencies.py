@@ -113,7 +113,7 @@ def replaceOneStudentFrequency(collection, studentDataFreq, classCode):
 api_token = get_token()
 
 # Exemplo de uso
-class_data = get_class_data("LOP-D",api_token)
+class_data = get_class_data("LOP-B",api_token)
 
 # Conecta ao banco de dados
 client = pymongo.MongoClient(config['ATLAS_URI'], server_api=ServerApi('1'))
