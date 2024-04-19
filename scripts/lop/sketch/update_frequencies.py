@@ -142,10 +142,59 @@ def replaceOneClassFrequency(collection, classDataFreq, classCode):
     print("Erro ao inserir no banco de dados!")
 
 
+def convertApiBotFrequencyDataToDavaViewer(subClassId, classDates):
+  """
+  Esta função recebe o código de uma sub turma da API do bot, 
+  obtem os dados de frequencência desta subturma, 
+  atualiza as presenças de cada aluno no banco de dados do DataViewer e 
+  retorna o somatório de presenças em cada dia de aula. 
+
+  Args:
+    subClassId (string): O código da subturma.
+
+  Returns:
+    dict: Um dicionário contendo o somatório de presenças em cada dia de aula.
+
+  """
+  # Obtem as presenças dos estudantes de uma subturma da API do bot 
+  class_data = get_class_data(subClassId, api_token)
+  
+  # Atualiza a frequência de cada estudante no banco de dados 
+  # Percorre os dados de frequência da turma
+  # Os dados estão organizados em um dicionário 
+  # Este for percorre o dicionário e mostra a presença de cada estudante. 
+  # O estudante é identificado por seu número de matrícula e este código lista 
+  # as datas em que o estudante esteve presente.
+  # Formato do dicionário para cada estudante depois de tratado:
+  # {"regNum": "234243234", "classCode": "lop2024_1t02", "classFreqs":  [ "2021-10-10", "2021-10-11", "2021-10-12" ] }
+
+  tempClassFreqs = {}  # Dicionário para armazenar o somatório de presenças em cada dia de aula
+  tempClassFreqs = classDates.copy() # Vetor com datas válidos 
+
+  for key, value in class_data.items():
+    if isinstance(value, dict):  # Verifica se o valor é um dicionário
+      for sub_key, sub_value in value.items():
+        tempStudent = {}
+        freqs = []
+        tempStudent['regNum'] = str(int(sub_value['matricula']))
+        for sub_sub_key, freq in sub_value['frequencia'].items():
+          if freq == 'P' or 'PT' in freq:
+            freqs.append(sub_sub_key) 
+            # Realiza o somatório das presenças dos estudantes para cada data 
+            if sub_sub_key in tempClassFreqs:
+              tempClassFreqs[sub_sub_key] += 1
+            #else:
+            #  tempClassFreqs[sub_sub_key] = 1
+        tempStudent['classFreqs'] = freqs
+        #print(tempStudent)
+        replaceOneStudentFrequency(collections, tempStudent, classCode)
+
+  return tempClassFreqs
+
+
 api_token = get_token()
 
-# Exemplo de uso
-class_data = get_class_data("LOP-B",api_token)
+
 
 # Conecta ao banco de dados
 client = pymongo.MongoClient(config['ATLAS_URI'], server_api=ServerApi('1'))
@@ -155,52 +204,29 @@ collections = dbDataviewer['studentfrequencies']
 # Código da turma 
 classCode = "lop2024_1t02"
 
-
 # Obtem as datas de aulas de uma turma e cria um dicionário para contar 
 # a presença de todos os estudantes em cada dia de aula 
 # As datas são obtidadas de uma tabela no formato CSV 
-tempClassFreqs = {}
+tempValidDateClassFreqs = {}
 dataClassFrec =  pd.read_csv("./dados/{}/datas_aulas.csv".format(classCode))  
 #print( dataClassFrec.head() ) 
 l, c =  dataClassFrec.shape
 for i in range(l):   
-  tempClassFreqs[ str( convertToUTCDate( dataClassFrec.iloc[i]['date'] ) ) ] = 0
-#print(tempClassFreqs)
+  tempValidDateClassFreqs[ str( convertToUTCDate( dataClassFrec.iloc[i]['date'] ) ) ] = 0
+print(tempValidDateClassFreqs)
 
-# Atualiza a frequência de cada estudante no banco de dados 
-# Percorre os dados de frequência da turma
-# Os dados estão organizados em um dicionário 
-# Este for percorre o dicionário e mostra a presença de cada estudante. 
-# O estudante é identificado por seu número de matrícula e este código lista 
-# as datas em que o estudante esteve presente.
-# Formato do dicionário para cada estudante depois de tratado:
-# {"regNum": "234243234", "classCode": "lop2024_1t02", "classFreqs": [ "2021-10-10", "2021-10-11", "2021-10-12" ] }
 
-for key, value in class_data.items():
-  if isinstance(value, dict):  # Verifica se o valor é um dicionário
-    for sub_key, sub_value in value.items():
-      tempStudent = {}
-      freqs = []
-      #print(f"Chave: {sub_key}, Valor: {sub_value}")
-      #print(sub_value['matricula']) 
-      tempStudent['regNum'] =  str( int( sub_value['matricula'] ))
-      #print(sub_value['frequencia'])
-      for sub_sub_key, freq in sub_value['frequencia'].items():
-        if freq == 'P':
-          #print(f"Dia: {sub_sub_key}")
-          freqs.append(sub_sub_key) 
-          # Atualiza a presença do data para cada estudante da turma 
-          if sub_sub_key in tempClassFreqs:
-            tempClassFreqs[sub_sub_key] += 1
-      tempStudent['classFreqs'] = freqs
-      #print(tempStudent)
-      #replaceOneStudentFrequency(collections, tempStudent, classCode)
+# Atualizando a presenças nas sub turmas
+tempClassFreqsA = convertApiBotFrequencyDataToDavaViewer('LOP-A',tempValidDateClassFreqs)
+tempClassFreqsB = convertApiBotFrequencyDataToDavaViewer('LOP-B',tempValidDateClassFreqs)
+tempClassFreqsC = convertApiBotFrequencyDataToDavaViewer('LOP-C',tempValidDateClassFreqs)
+tempClassFreqsD = convertApiBotFrequencyDataToDavaViewer('LOP-D',tempValidDateClassFreqs)
 
 # Granvando a frequência da turma no banco de dados
 tempClass = {}
 collectionsFreqs = dbDataviewer['classfrequencies']
 tempClass['classCode'] = classCode
-tempClass['studentNumber'] = 100
-tempClass['classFreqs'] = tempClassFreqs
+tempClass['studentNumber'] = 133
+tempClass['classFreqs'] = { 'A': tempClassFreqsA, 'B': tempClassFreqsB, 'C': tempClassFreqsC, 'D': tempClassFreqsD }
 print(tempClass)
 replaceOneClassFrequency(collectionsFreqs, tempClass, classCode)
