@@ -1,3 +1,5 @@
 dados
 .env
 .DS_Store
+
+scripts/lop/sketch/.ipynb_checkpoints/
