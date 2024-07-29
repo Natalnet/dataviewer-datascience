@@ -144,10 +144,10 @@ class BotDataManipulation:
         for miniTest in miniTestsForUnitOne:
           if miniTest in participationMiniTests[participationCod]['respostas']:
             miniTestCount += 1
-        miniValue = str(miniTestCount/len(miniTestsForUnitOne))
-        doc['pres1'] = miniValue
+        miniValue = str(10*miniTestCount/len(miniTestsForUnitOne))
+        doc['presenca1'] = miniValue
         # Temporariamente as notas da atividade 1 e da presença 1 são iguais e calculadas com os mini-testes 
-        doc['ativs1'] = miniValue
+        doc['atividade1'] = miniValue
         miniTestCount = 0 
         for miniTest in miniTestsForUnitTwo:
           if miniTest in participationMiniTests[participationCod]['respostas']:
@@ -155,9 +155,9 @@ class BotDataManipulation:
         if len(miniTestsForUnitTwo) == 0:
           miniValue = '0'
         else:
-          miniValue = str(miniTestCount/len(miniTestsForUnitTwo))
-        doc['pres2'] = miniValue
-        doc['ativs2'] = miniValue
+          miniValue = str(10*miniTestCount/len(miniTestsForUnitTwo))
+        doc['presenca2'] = miniValue
+        doc['atividade2'] = miniValue
         miniTestCount = 0
         for miniTest in miniTestsForUnitThree:
           if miniTest in participationMiniTests[participationCod]['respostas']:
@@ -165,9 +165,9 @@ class BotDataManipulation:
         if len(miniTestsForUnitThree) == 0:
           miniValue = '0'
         else:
-          miniValue = str(miniTestCount/len(miniTestsForUnitThree))
-        doc['pres3'] = miniValue
-        doc['ativs3'] =  miniValue 
+          miniValue = str(10*miniTestCount/len(miniTestsForUnitThree))
+        doc['presenca3'] = miniValue
+        doc['atividade3'] =  miniValue 
         doc["codigoTurma"] = classCode 
         print('---\n',doc) 
         try: 
